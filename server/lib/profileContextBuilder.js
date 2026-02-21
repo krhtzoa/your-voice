@@ -119,6 +119,7 @@ export function buildSystemPrompt({ profile, rules, prompt, duration, platform }
   // Section 1: Task
   parts.push(`Generate a script about the following topic for ${platformLabel} content. Maximum length: ${maxWords} words.\n`)
   parts.push(`Topic: ${prompt}\n`)
+  parts.push('Format the script with line breaks between paragraphs or sections. Use short paragraphs (2-4 sentences each). Do not output a single wall of text.\n')
 
   // Section 2: Creator identity & goals
   parts.push('## Creator Profile')
@@ -137,7 +138,7 @@ export function buildSystemPrompt({ profile, rules, prompt, duration, platform }
   parts.push('')
   parts.push('Always apply these rules:')
   parts.push('- Sound human and natural. Avoid anything that reads as AI-generated (e.g. overly polished, generic, or formulaic).')
-  parts.push('- Do not use em-dashes (—). Use commas, periods, or parentheses instead.')
+  parts.push('- NEVER use em-dashes (—). Use commas, periods, or parentheses instead. This is mandatory.')
   parts.push('- Use zero emojis unless the user explicitly asks for them.')
   if (rulesBlock) {
     parts.push('')

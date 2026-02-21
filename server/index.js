@@ -87,6 +87,9 @@ app.post('/api/create-content', async (req, res) => {
       platform,
     })
 
+    // Debug: log full AI context (see terminal when running npm start)
+    console.log('--- AI system prompt (injected context) ---\n', systemContent, '\n--- end ---')
+
     const openai = new OpenAI({ apiKey })
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -95,10 +98,126 @@ app.post('/api/create-content', async (req, res) => {
         { role: 'user', content: prompt.trim() },
       ],
     })
-    const text = completion.choices?.[0]?.message?.content ?? ''
+    let text = completion.choices?.[0]?.message?.content ?? ''
+    // Post-process: strip em-dashes (AI sometimes ignores the rule)
+    text = text.replace(/—/g, ', ')
     res.json({ content: text })
   } catch (err) {
     console.error('create-content error:', err)
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message || 'Failed to generate content' })
+    }
+  }
+})
+
+// Extract rules from feedback and insert into voice_rules
+app.post('/api/feedback', async (req, res) => {
+  const sendError = (status, msg) => {
+    if (res.headersSent) return
+    try {
+      res.status(status).json({ error: msg })
+    } catch (e) {
+      console.error('Failed to send error response:', e)
+    }
+  }
+
+  try {
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) {
+      return sendError(500, 'OpenAI API key not configured')
+    }
+
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return sendError(401, 'Unauthorized')
+    }
+    const token = authHeader.slice(7).trim()
+    if (!token) {
+      return sendError(401, 'Unauthorized')
+    }
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return sendError(500, 'Supabase not configured')
+    }
+
+    const { feedbackText, scriptContent, scriptId } = req.body ?? {}
+    if (!feedbackText || typeof feedbackText !== 'string' || !feedbackText.trim()) {
+      return sendError(400, 'Feedback text is required')
+    }
+    if (!scriptContent || typeof scriptContent !== 'string') {
+      return sendError(400, 'Script content is required')
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) {
+      return sendError(401, 'Unauthorized')
+    }
+
+    const supabaseWithAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    })
+
+    // Save feedback
+    const { error: insertError } = await supabaseWithAuth
+      .from('script_feedback')
+      .insert({
+        user_id: user.id,
+        script_id: scriptId || null,
+        script_snapshot: scriptContent.slice(0, 5000),
+        feedback_text: feedbackText.trim(),
+      })
+    if (insertError) {
+      console.error('script_feedback insert error:', insertError)
+      return sendError(500, 'Failed to save feedback')
+    }
+
+    // Extract rules via OpenAI
+    const extractPrompt = `Here is a script the user received:
+
+---
+${scriptContent.slice(0, 4000)}
+---
+
+The user gave this feedback: "${feedbackText.trim()}"
+
+Please figure out what COMMUNICATION STYLE and TONE rules can be learned from this feedback. Return each rule on its own line, numbered as ##1, ##2, ##3, etc. Only include actionable rules (e.g., "Never use the phrase X", "Prefer a more casual tone"). Focus on communication patterns, not expertise. If no rules can be extracted, return "NONE".`
+
+    const openai = new OpenAI({ apiKey })
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: extractPrompt }],
+    })
+    const raw = completion.choices?.[0]?.message?.content ?? ''
+
+    // Parse ##1, ##2, ##3 etc
+    const rules = []
+    const lines = raw.split(/\n/)
+    for (const line of lines) {
+      const m = line.match(/^##\d+\s*[.:]?\s*(.+)$/)
+      if (m) {
+        const text = m[1].trim()
+        if (text && !/^NONE$/i.test(text)) rules.push(text)
+      }
+    }
+
+    // Insert each rule into voice_rules
+    let rulesAdded = 0
+    for (const content of rules) {
+      const { error: ruleError } = await supabaseWithAuth
+        .from('voice_rules')
+        .insert({
+          user_id: user.id,
+          content,
+          rule_type: 'general',
+          source: 'feedback',
+        })
+      if (!ruleError) rulesAdded++
+    }
+
+    res.json({ rulesAdded })
+  } catch (err) {
+    console.error('feedback error:', err)
     if (!res.headersSent) {
       res.status(500).json({ error: err.message || 'Failed to generate content' })
     }
