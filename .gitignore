@@ -35,3 +35,4 @@ dist-ssr
 # Project-specific
 tasks/
 .cursor/
+docs/design-system.md

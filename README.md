@@ -48,13 +48,20 @@ cp .env.example .env
 
 Get your Supabase URL and anon key from your [Supabase project settings](https://supabase.com/dashboard/project/_/settings/api).
 
+### Auth Setup
+
+The app uses Supabase Auth (email/password). In your Supabase project:
+
+1. Go to **Authentication → Providers** and ensure **Email** is enabled
+2. For email confirmation, add your redirect URLs under **Authentication → URL Configuration** (e.g. `http://localhost:3005` for dev, your Netlify URL for production)
+
 ### Development
 
 ```bash
-npm run dev
+npm start
 ```
 
-Runs at [http://localhost:3005](http://localhost:3005)
+Or `npm run dev`. Runs at [http://localhost:3005](http://localhost:3005)
 
 ### Build
 
