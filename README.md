@@ -48,6 +48,17 @@ cp .env.example .env
 
 Get your Supabase URL and anon key from your [Supabase project settings](https://supabase.com/dashboard/project/_/settings/api).
 
+### Supabase CLI
+
+The project uses Supabase CLI for migrations. To link to your remote project:
+
+```bash
+npx supabase login
+npx supabase link --project-ref ibaafagxnhxlzxvmwmjx
+```
+
+Then push migrations: `npx supabase db push`
+
 ### Auth Setup
 
 The app uses Supabase Auth (email/password). In your Supabase project:
@@ -80,6 +91,11 @@ npm run lint
 ```bash
 npm run preview
 ```
+
+### RLS (Row Level Security)
+
+Basic RLS is enabled on `profiles`:
+- **SELECT, INSERT, UPDATE, DELETE**: Users can only access their own profile (`auth.uid() = id`)
 
 ## Deployment (Netlify)
 

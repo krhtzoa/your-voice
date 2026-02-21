@@ -32,10 +32,16 @@ const ICONS = {
       <line x1="8" x2="16" y1="11" y2="11" />
     </svg>
   ),
-  settings: (
+  profile: (
     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1 1 1.73l.43.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.43-.25a2 2 0 0 1 1-1.73h.18a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2" />
-      <circle cx="12" cy="12" r="3" />
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+  account: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   ),
   chevron: (expanded) => (
@@ -59,7 +65,8 @@ const NAV_ITEMS = [
   { id: 'script', icon: 'script', label: 'Script' },
   { id: 'voice', icon: 'voice', label: 'Voice' },
   { id: 'niche', icon: 'niche', label: 'Niche' },
-  { id: 'settings', icon: 'settings', label: 'Settings' },
+  { id: 'profile', icon: 'profile', label: 'Profile' },
+  { id: 'account', icon: 'account', label: 'Account' },
 ]
 
 export default function Sidebar({ activeTab, onTabChange, expanded, onExpandToggle }) {
@@ -89,7 +96,7 @@ export default function Sidebar({ activeTab, onTabChange, expanded, onExpandTogg
         ))}
       </nav>
 
-      {activeTab === 'settings' && expanded && isConfigured && (
+      {activeTab === 'account' && expanded && isConfigured && (
         <div className="border-t border-slate-700/50 px-3 py-4">
           <h3 className="text-min font-semibold text-white">Account</h3>
           <p className="mt-1 truncate text-min text-white/80">
