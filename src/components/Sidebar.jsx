@@ -32,6 +32,12 @@ const ICONS = {
       <line x1="8" x2="16" y1="11" y2="11" />
     </svg>
   ),
+  rules: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 11l3 3L22 4" />
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    </svg>
+  ),
   profile: (
     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
@@ -64,6 +70,7 @@ const NAV_ITEMS = [
   { id: 'home', icon: 'home', label: 'Home' },
   { id: 'script', icon: 'script', label: 'Script' },
   { id: 'voice', icon: 'voice', label: 'Voice' },
+  { id: 'rules', icon: 'rules', label: 'Rules' },
   { id: 'niche', icon: 'niche', label: 'Niche' },
   { id: 'profile', icon: 'profile', label: 'Profile' },
   { id: 'account', icon: 'account', label: 'Account' },
