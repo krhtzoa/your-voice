@@ -96,7 +96,7 @@ export default function Sidebar({ activeTab, onTabChange, expanded, onExpandTogg
         ))}
       </nav>
 
-      {activeTab === 'account' && expanded && isConfigured && (
+      {expanded && isConfigured && user && (
         <div className="border-t border-slate-700/50 px-3 py-4">
           <h3 className="text-min font-semibold text-white">Account</h3>
           <p className="mt-1 truncate text-min text-white/80">

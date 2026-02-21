@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { ICON_MAP, LABEL_MAP } from '../lib/platforms.jsx'
+import { createContent } from '../lib/createContentApi.js'
 
 const MIN_DURATION = 20
 const MAX_DURATION = 180
@@ -22,6 +23,9 @@ export default function HomePage() {
   const [selectedPlatform, setSelectedPlatform] = useState(null)
   const [duration, setDuration] = useState(60)
   const [prompt, setPrompt] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState('')
+  const [generatedContent, setGeneratedContent] = useState('')
 
   useEffect(() => {
     if (!supabase || !user?.id) {
@@ -52,6 +56,25 @@ export default function HomePage() {
 
   const hasMultiple = contentPlatforms.length > 1
   const hasOne = contentPlatforms.length === 1
+
+  async function handleCreate() {
+    if (!prompt.trim()) return
+    setCreating(true)
+    setCreateError('')
+    setGeneratedContent('')
+    try {
+      const { content } = await createContent({
+        prompt: prompt.trim(),
+        duration,
+        platform: selectedPlatform ?? undefined,
+      })
+      setGeneratedContent(content)
+    } catch (err) {
+      setCreateError(err.message || 'Something went wrong')
+    } finally {
+      setCreating(false)
+    }
+  }
 
   return (
     <div className="flex flex-col items-center pt-12 px-6 pb-16">
@@ -115,12 +138,21 @@ export default function HomePage() {
                     onClick={() => setSelectedPlatform(slug)}
                     className={`flex items-center gap-2 rounded-lg border-2 px-4 py-2.5 transition-all ${
                       isSelected
-                        ? 'border-slate-900 bg-slate-100'
-                        : 'border-slate-200 bg-white hover:border-slate-400'
+                        ? 'border-slate-900 bg-slate-200 ring-2 ring-slate-900/30 shadow-md'
+                        : 'border-slate-200 bg-white/50 opacity-80 hover:bg-white/80 hover:opacity-100 hover:border-slate-300'
                     }`}
                   >
-                    {Icon && <Icon className="h-5 w-5 text-slate-600" strokeWidth={1.5} />}
-                    <span className="text-min font-medium text-slate-800">{label}</span>
+                    {Icon && (
+                      <Icon
+                        className={`h-5 w-5 ${isSelected ? 'text-slate-900' : 'text-slate-500'}`}
+                        strokeWidth={1.5}
+                      />
+                    )}
+                    <span
+                      className={`text-min font-medium ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}
+                    >
+                      {label}
+                    </span>
                   </button>
                 )
               })}
@@ -132,27 +164,33 @@ export default function HomePage() {
         </div>
 
         {/* Duration */}
-        <div>
+        <div className="rounded-2xl border border-slate-200/80 bg-white/60 p-6 shadow-lg backdrop-blur-sm">
           <label
             htmlFor="content-duration"
-            className="mb-2 block text-min font-medium text-slate-700"
+            className="mb-3 block text-min font-semibold text-slate-800"
           >
             How long is the content?
           </label>
-          <div className="flex items-center gap-4">
-            <input
-              id="content-duration"
-              type="range"
-              min={MIN_DURATION}
-              max={MAX_DURATION}
-              step={STEP}
-              value={duration}
-              onChange={(e) => setDuration(Number(e.target.value))}
-              className="h-2 w-full flex-1 cursor-pointer appearance-none rounded-lg bg-slate-200 accent-slate-700"
-            />
-            <span className="min-w-[4rem] text-min font-medium text-slate-700">
-              {formatDuration(duration)}
-            </span>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between text-[0.75rem] font-medium text-slate-500">
+              <span>{formatDuration(MIN_DURATION)}</span>
+              <span>{formatDuration(MAX_DURATION)}</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <input
+                id="content-duration"
+                type="range"
+                min={MIN_DURATION}
+                max={MAX_DURATION}
+                step={STEP}
+                value={duration}
+                onChange={(e) => setDuration(Number(e.target.value))}
+                className="duration-slider flex-1"
+              />
+              <span className="min-w-[5rem] rounded-full bg-slate-800 px-4 py-2 text-center font-bubbly text-lg font-bold text-white shadow-md ring-2 ring-slate-700/50">
+                {formatDuration(duration)}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -173,6 +211,31 @@ export default function HomePage() {
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-800 placeholder-slate-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
           />
         </div>
+
+        {/* CREATE! button */}
+        <button
+          type="button"
+          onClick={handleCreate}
+          disabled={creating || !prompt.trim()}
+          className="w-full rounded-2xl bg-slate-900 px-8 py-5 font-bubbly text-2xl font-black text-white shadow-lg transition-all hover:scale-[1.02] hover:bg-slate-800 hover:shadow-xl active:scale-[0.98] disabled:scale-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-slate-900"
+        >
+          {creating ? 'Creating…' : 'CREATE!'}
+        </button>
+
+        {createError && (
+          <p className="text-min text-red-600">{createError}</p>
+        )}
+
+        {generatedContent && (
+          <div className="rounded-xl border border-slate-200 bg-white/95 p-6 shadow-sm">
+            <h3 className="mb-3 text-lg font-semibold text-slate-800">
+              Generated content
+            </h3>
+            <pre className="whitespace-pre-wrap font-sans text-base text-slate-700">
+              {generatedContent}
+            </pre>
+          </div>
+        )}
       </div>
     </div>
   )

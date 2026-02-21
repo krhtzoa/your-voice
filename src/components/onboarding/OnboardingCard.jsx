@@ -2,6 +2,7 @@ export default function OnboardingCard({
   children,
   onBack,
   onNext,
+  onSkip,
   showBack = true,
   nextLabel = 'Next',
   nextDisabled = false,
@@ -12,7 +13,7 @@ export default function OnboardingCard({
     <div className="w-full max-w-[500px] rounded-xl border border-slate-200 bg-white/95 p-6 shadow-sm">
       {children}
       <div className="mt-6 flex items-center justify-between gap-4">
-        <div className="flex-1">
+        <div className="flex flex-1 items-center gap-3">
           {showBack && (
             <button
               type="button"
@@ -21,6 +22,16 @@ export default function OnboardingCard({
               className="rounded-lg border border-slate-300 px-4 py-2 text-min font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:opacity-50"
             >
               Back
+            </button>
+          )}
+          {onSkip && (
+            <button
+              type="button"
+              onClick={onSkip}
+              disabled={saving}
+              className="text-min font-medium text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline disabled:opacity-50"
+            >
+              Skip
             </button>
           )}
         </div>

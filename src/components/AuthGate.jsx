@@ -1,8 +1,25 @@
+import { useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import AuthForm from './AuthForm.jsx'
 
 export default function AuthGate({ children }) {
+  const navigate = useNavigate()
   const { user, loading, isConfigured } = useAuth()
+  const authFormShownRef = useRef(false)
+
+  useEffect(() => {
+    if (isConfigured && !user) {
+      authFormShownRef.current = true
+    }
+  }, [isConfigured, user])
+
+  useEffect(() => {
+    if (user && authFormShownRef.current) {
+      navigate('/', { replace: true })
+      authFormShownRef.current = false
+    }
+  }, [user, navigate])
 
   if (loading) {
     return (

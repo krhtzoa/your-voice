@@ -76,7 +76,7 @@ export default function CardPlatforms({
     <OnboardingCard
       onBack={onBack}
       onNext={onNext}
-      nextLabel="Finish"
+      nextLabel="Next"
       error={error}
       saving={saving}
     >

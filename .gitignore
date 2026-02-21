@@ -23,14 +23,17 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment & secrets
+# Environment & secrets (never commit keys, tokens, or credentials)
 .env
 .env.local
+.env.development
+.env.production
 .env.*.local
 *.secret
 *.key
 *credentials*
 *secrets*
+*.pem
 
 # Project-specific
 tasks/
