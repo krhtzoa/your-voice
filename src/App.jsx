@@ -8,6 +8,7 @@ import AccountPage from './pages/AccountPage.jsx'
 import HomePage from './pages/HomePage.jsx'
 import ProfilePage from './pages/ProfilePage.jsx'
 import RulesPage from './pages/RulesPage.jsx'
+import ScriptsPage from './pages/ScriptsPage.jsx'
 
 const STORAGE_KEY = 'your-voice-bg-color'
 const DEFAULT_COLOR = '#f8fafc'
@@ -28,7 +29,9 @@ function App() {
         ? 'profile'
         : location.pathname === '/rules'
           ? 'rules'
-          : 'home'
+          : location.pathname === '/scripts'
+            ? 'script'
+            : 'home'
 
   const setColorFromServer = useCallback((color) => {
     const hex = color || DEFAULT_COLOR
@@ -70,6 +73,7 @@ function App() {
           if (tab === 'account') navigate('/account')
           else if (tab === 'profile') navigate('/profile')
           else if (tab === 'rules') navigate('/rules')
+          else if (tab === 'script') navigate('/scripts')
           else navigate('/')
         }}
         expanded={sidebarExpanded}
@@ -87,6 +91,7 @@ function App() {
           homeElement={<HomePage />}
           profileElement={<ProfilePage />}
           rulesElement={<RulesPage />}
+          scriptsElement={<ScriptsPage />}
           accountElement={
             <AccountPage bgColor={bgColor} onColorChange={updateBgColor} />
           }

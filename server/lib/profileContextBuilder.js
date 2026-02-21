@@ -134,6 +134,11 @@ export function buildSystemPrompt({ profile, rules, prompt, duration, platform }
   // Section 3: Style & rules
   parts.push('## Style and Voice Rules')
   parts.push(`When writing the script, use the style and tone of: ${elaborated.tone}`)
+  parts.push('')
+  parts.push('Always apply these rules:')
+  parts.push('- Sound human and natural. Avoid anything that reads as AI-generated (e.g. overly polished, generic, or formulaic).')
+  parts.push('- Do not use em-dashes (—). Use commas, periods, or parentheses instead.')
+  parts.push('- Use zero emojis unless the user explicitly asks for them.')
   if (rulesBlock) {
     parts.push('')
     parts.push('Make sure you follow these rules:')

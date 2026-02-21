@@ -13,9 +13,22 @@ export async function createContent({ prompt, duration, platform, accessToken })
     headers,
     body: JSON.stringify({ prompt, duration, platform }),
   })
-  const data = await res.json()
+  const text = await res.text()
+  let data = {}
+  if (text) {
+    try {
+      data = JSON.parse(text)
+    } catch {
+      // Proxy/HTML error page or truncated response
+      const hint = res.status >= 500
+        ? 'API server may be down. Run `npm run dev` (starts both Vite + API). Check terminal for errors.'
+        : `Request failed (${res.status})`
+      throw new Error(hint)
+    }
+  }
   if (!res.ok) {
-    throw new Error(data.error || `Request failed (${res.status})`)
+    const msg = data.error || (res.status >= 500 ? 'API server error. Run `npm run dev` and check terminal for details.' : `Request failed (${res.status})`)
+    throw new Error(msg)
   }
   return data
 }
