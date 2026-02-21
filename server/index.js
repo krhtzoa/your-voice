@@ -87,8 +87,12 @@ app.post('/api/create-content', async (req, res) => {
       platform,
     })
 
-    // Debug: log full AI context (see terminal when running npm start)
-    console.log('--- AI system prompt (injected context) ---\n', systemContent, '\n--- end ---')
+    // Debug: log full AI context (look in the terminal where npm start is running)
+    console.log('\n' + '='.repeat(60))
+    console.log('AI SYSTEM PROMPT (injected context)')
+    console.log('='.repeat(60))
+    console.log(systemContent)
+    console.log('='.repeat(60) + '\n')
 
     const openai = new OpenAI({ apiKey })
     const completion = await openai.chat.completions.create({
@@ -181,7 +185,7 @@ ${scriptContent.slice(0, 4000)}
 
 The user gave this feedback: "${feedbackText.trim()}"
 
-Please figure out what COMMUNICATION STYLE and TONE rules can be learned from this feedback. Return each rule on its own line, numbered as ##1, ##2, ##3, etc. Only include actionable rules (e.g., "Never use the phrase X", "Prefer a more casual tone"). Focus on communication patterns, not expertise. If no rules can be extracted, return "NONE".`
+Extract 1–3 COMMUNICATION STYLE or TONE rules directly from this feedback. Be conservative: only extract what the user clearly asked for. Do not extrapolate, generalize, or add related ideas they did not mention. Prefer fewer, precise rules over many overlapping ones. Return each rule on its own line, numbered as ##1, ##2, ##3. If nothing actionable can be extracted, return "NONE".`
 
     const openai = new OpenAI({ apiKey })
     const completion = await openai.chat.completions.create({
@@ -226,6 +230,7 @@ Please figure out what COMMUNICATION STYLE and TONE rules can be learned from th
 
 app.listen(PORT, () => {
   console.log(`API server running at http://localhost:${PORT}`)
+  console.log('(AI context will be logged here when you CREATE content)')
   if (!process.env.OPENAI_API_KEY) {
     console.warn('WARNING: OPENAI_API_KEY not set – create-content will fail')
   }

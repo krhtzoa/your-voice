@@ -158,8 +158,10 @@ export default function HomePage() {
       >
         YOUR VOICE
       </h1>
-      <p className="mt-6 text-center text-base text-slate-600">
-        The personalized content generator that learns who you are
+      <p className="mt-6 text-center">
+        <span className="inline-block rounded-full bg-white/95 px-4 py-2 text-base text-slate-800 shadow-md ring-1 ring-black/10">
+          The personalized content generator that learns who you are
+        </span>
       </p>
 
       <div className="mt-12 w-full max-w-[600px] space-y-6">
@@ -221,7 +223,7 @@ export default function HomePage() {
             </div>
 
             {/* Actions at bottom */}
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white/95 p-5 shadow-sm">
               <button
                 type="button"
                 onClick={handleSave}
@@ -237,8 +239,8 @@ export default function HomePage() {
               >
                 Create another
               </button>
-              <p className="text-center text-min text-slate-500">
-                <Link to="/scripts" className="underline hover:text-slate-700">
+              <p className="text-center text-min text-slate-600">
+                <Link to="/scripts" className="font-medium underline hover:text-slate-800">
                   View all scripts
                 </Link>
               </p>
@@ -250,10 +252,10 @@ export default function HomePage() {
             <LoadingDots />
           </div>
         ) : (
-          <>
+          <div className="rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-lg backdrop-blur-sm">
             {/* What are we making? */}
             <div>
-              <label className="mb-2 block text-min font-medium text-slate-700">
+              <label className="mb-2 block text-min font-medium text-slate-800">
                 What are we making?
               </label>
               {platformsLoading ? (
@@ -280,8 +282,8 @@ export default function HomePage() {
                       )
                     })()}
                   </div>
-                  <p className="mt-1.5 text-[0.8125rem] text-slate-500">
-                    (<Link to="/profile" className="underline hover:text-slate-600">edit profile to add more</Link>)
+                  <p className="mt-1.5 text-[0.8125rem] text-slate-600">
+                    (<Link to="/profile" className="font-medium underline hover:text-slate-800">edit profile to add more</Link>)
                   </p>
                 </div>
               ) : (
@@ -315,15 +317,15 @@ export default function HomePage() {
                       </button>
                     )
                   })}
-                  <p className="mt-1.5 w-full text-[0.8125rem] text-slate-500">
-                    (<Link to="/profile" className="underline hover:text-slate-600">edit profile to add more</Link>)
+                  <p className="mt-1.5 w-full text-[0.8125rem] text-slate-600">
+                    (<Link to="/profile" className="font-medium underline hover:text-slate-800">edit profile to add more</Link>)
                   </p>
                 </div>
               )}
             </div>
 
             {/* Duration */}
-            <div className="rounded-2xl border border-slate-200/80 bg-white/60 p-6 shadow-lg backdrop-blur-sm">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-6">
               <label
                 htmlFor="content-duration"
                 className="mb-3 block text-min font-semibold text-slate-800"
@@ -357,7 +359,7 @@ export default function HomePage() {
             <div>
               <label
                 htmlFor="content-prompt"
-                className="mb-2 block text-min font-medium text-slate-700"
+                className="mb-2 block text-min font-medium text-slate-800"
               >
                 Prompt for your content
               </label>
@@ -380,7 +382,7 @@ export default function HomePage() {
             >
               CREATE!
             </button>
-          </>
+          </div>
         )}
 
         {createError && (

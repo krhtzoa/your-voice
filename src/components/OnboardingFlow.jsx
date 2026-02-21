@@ -136,7 +136,7 @@ export default function OnboardingFlow() {
 
   return (
     <div className="flex flex-col items-center pt-12 px-6 pb-16">
-      <p className="mb-6 text-min text-slate-500">
+      <p className="mb-6 inline-block rounded-full bg-white/95 px-4 py-2 text-min font-medium text-slate-800 shadow-lg ring-1 ring-black/10">
         Step {cardIndex + 1} of {TOTAL_CARDS}
       </p>
       <div className="h-1 w-full max-w-[500px] overflow-hidden rounded-full bg-slate-200">
