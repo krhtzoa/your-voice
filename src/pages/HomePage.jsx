@@ -17,7 +17,7 @@ function formatDuration(seconds) {
 }
 
 export default function HomePage() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [contentPlatforms, setContentPlatforms] = useState([])
   const [platformsLoading, setPlatformsLoading] = useState(true)
   const [selectedPlatform, setSelectedPlatform] = useState(null)
@@ -67,10 +67,12 @@ export default function HomePage() {
         prompt: prompt.trim(),
         duration,
         platform: selectedPlatform ?? undefined,
+        accessToken: session?.access_token,
       })
       setGeneratedContent(content)
     } catch (err) {
-      setCreateError(err.message || 'Something went wrong')
+      const msg = err.message || 'Something went wrong'
+      setCreateError(msg.includes('401') || msg.toLowerCase().includes('unauthorized') ? 'Please log in to create content.' : msg)
     } finally {
       setCreating(false)
     }
