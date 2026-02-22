@@ -2,7 +2,16 @@ import 'dotenv/config'
 import express from 'express'
 import OpenAI from 'openai'
 import { createClient } from '@supabase/supabase-js'
+import { YoutubeTranscript } from 'youtube-transcript'
 import { buildSystemPrompt } from './lib/profileContextBuilder.js'
+
+const RE_YOUTUBE_VIDEO_ID = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i
+
+function extractVideoId(urlOrId) {
+  if (!urlOrId || typeof urlOrId !== 'string') return null
+  const m = urlOrId.trim().match(RE_YOUTUBE_VIDEO_ID)
+  return m ? m[1] : (urlOrId.length === 11 ? urlOrId : null)
+}
 
 const app = express()
 app.use(express.json())
@@ -224,6 +233,113 @@ Extract 1–3 COMMUNICATION STYLE or TONE rules directly from this feedback. Be 
     console.error('feedback error:', err)
     if (!res.headersSent) {
       res.status(500).json({ error: err.message || 'Failed to generate content' })
+    }
+  }
+})
+
+// Extract knowledge, perspectives, and communication styles from a YouTube transcript
+app.post('/api/expertise/extract', async (req, res) => {
+  const sendError = (status, msg) => {
+    if (res.headersSent) return
+    try {
+      res.status(status).json({ error: msg })
+    } catch (e) {
+      console.error('Failed to send error response:', e)
+    }
+  }
+
+  try {
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) {
+      return sendError(500, 'OpenAI API key not configured')
+    }
+
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return sendError(401, 'Unauthorized')
+    }
+    const token = authHeader.slice(7).trim()
+    if (!token) {
+      return sendError(401, 'Unauthorized')
+    }
+
+    const { youtubeUrl } = req.body ?? {}
+    const videoId = extractVideoId(youtubeUrl)
+    if (!videoId) {
+      return sendError(400, 'Valid YouTube URL or video ID is required')
+    }
+
+    // Fetch transcript
+    let transcriptParts
+    try {
+      transcriptParts = await YoutubeTranscript.fetchTranscript(videoId)
+    } catch (err) {
+      const msg = err?.message || String(err)
+      if (/disabled|unavailable|not available|too many/i.test(msg)) {
+        return sendError(400, msg.replace(/\[YoutubeTranscript\]\s*🚨\s*/i, ''))
+      }
+      throw err
+    }
+
+    const transcriptText = transcriptParts
+      .map((p) => (p.text || '').trim())
+      .filter(Boolean)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+    if (!transcriptText || transcriptText.length < 100) {
+      return sendError(400, 'Transcript is empty or too short to analyze')
+    }
+
+    // Extract knowledge, perspectives, communication styles via OpenAI
+    const extractPrompt = `You are analyzing a YouTube video transcript to extract reusable expertise for a content creator.
+
+TRANSCRIPT (excerpt, may be truncated):
+---
+${transcriptText.slice(0, 12000)}
+---
+
+Extract and return a JSON object with exactly these keys (each an array of strings):
+
+1. **knowledge** — Key facts, concepts, frameworks, or teachings from the transcript. Be specific and actionable.
+2. **perspectives** — The speaker's viewpoints, principles, or "why" behind their approach. What do they believe or emphasize?
+3. **communicationStyles** — How they communicate: tone, structure, analogies, phrases they repeat, how they explain complex topics, direct address patterns, etc.
+
+Be concise. Each item should be 1–2 sentences. Prefer 3–8 items per category. Focus on what a content creator could learn and apply.`
+
+    const openai = new OpenAI({ apiKey })
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: extractPrompt }],
+    })
+    const raw = completion.choices?.[0]?.message?.content ?? ''
+
+    let extracted
+    try {
+      const jsonMatch = raw.match(/\{[\s\S]*\}/)
+      extracted = jsonMatch ? JSON.parse(jsonMatch[0]) : {}
+    } catch {
+      extracted = { knowledge: [], perspectives: [], communicationStyles: [] }
+    }
+
+    const knowledge = Array.isArray(extracted.knowledge) ? extracted.knowledge : []
+    const perspectives = Array.isArray(extracted.perspectives) ? extracted.perspectives : []
+    const communicationStyles = Array.isArray(extracted.communicationStyles)
+      ? extracted.communicationStyles
+      : []
+
+    res.json({
+      transcript: transcriptText.slice(0, 2000),
+      transcriptLength: transcriptText.length,
+      knowledge,
+      perspectives,
+      communicationStyles,
+    })
+  } catch (err) {
+    console.error('expertise/extract error:', err)
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message || 'Failed to extract expertise' })
     }
   }
 })

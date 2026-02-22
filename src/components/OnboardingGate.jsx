@@ -18,6 +18,7 @@ export default function OnboardingGate({
   profileElement,
   rulesElement,
   scriptsElement,
+  expertiseElement,
   accountElement,
 }) {
   const { user } = useAuth()
@@ -78,6 +79,7 @@ export default function OnboardingGate({
         <Route path="/profile" element={profileElement} />
         <Route path="/rules" element={rulesElement} />
         <Route path="/scripts" element={scriptsElement} />
+        <Route path="/expertise" element={expertiseElement} />
         <Route path="/account" element={accountElement} />
       </Routes>
     )
@@ -122,6 +124,7 @@ export default function OnboardingGate({
       <Route path="/profile" element={profileElement} />
       <Route path="/rules" element={rulesElement} />
       <Route path="/scripts" element={scriptsElement} />
+      <Route path="/expertise" element={expertiseElement} />
       <Route path="/account" element={accountElement} />
     </Routes>
   )

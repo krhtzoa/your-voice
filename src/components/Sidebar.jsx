@@ -74,11 +74,13 @@ const NAV_ITEMS = [
   { id: 'account', icon: 'account', label: 'Account' },
 ]
 
-export default function Sidebar({ activeTab, onTabChange, expanded, onExpandToggle }) {
+export default function Sidebar({ activeTab, onTabChange, expanded, onExpandToggle, onHoverChange }) {
   const { user, signOut, isConfigured } = useAuth()
 
   return (
     <aside
+      onMouseEnter={() => onHoverChange?.(true)}
+      onMouseLeave={() => onHoverChange?.(false)}
       className={`fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-slate-700/50 bg-slate-900 transition-all duration-300 ease-in-out ${
         expanded ? 'w-[200px]' : 'w-14'
       }`}
