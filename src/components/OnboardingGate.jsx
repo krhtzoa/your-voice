@@ -16,6 +16,9 @@ export default function OnboardingGate({
   onColorUpdate,
   homeElement,
   profileElement,
+  rulesElement,
+  scriptsElement,
+  expertiseElement,
   accountElement,
 }) {
   const { user } = useAuth()
@@ -74,6 +77,9 @@ export default function OnboardingGate({
       <Routes>
         <Route path="/" element={homeElement} />
         <Route path="/profile" element={profileElement} />
+        <Route path="/rules" element={rulesElement} />
+        <Route path="/scripts" element={scriptsElement} />
+        <Route path="/expertise" element={expertiseElement} />
         <Route path="/account" element={accountElement} />
       </Routes>
     )
@@ -116,6 +122,9 @@ export default function OnboardingGate({
         }
       />
       <Route path="/profile" element={profileElement} />
+      <Route path="/rules" element={rulesElement} />
+      <Route path="/scripts" element={scriptsElement} />
+      <Route path="/expertise" element={expertiseElement} />
       <Route path="/account" element={accountElement} />
     </Routes>
   )
