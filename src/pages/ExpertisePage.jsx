@@ -81,7 +81,8 @@ export default function ExpertisePage() {
     const { error: err } = await createRule(user.id, {
       content: text.trim(),
       rule_type: 'general',
-      source: 'feedback', // expertise-derived rules stored as feedback source
+      source: 'feedback',
+      category: 'expertise',
     })
     if (!err) {
       setAddedAsRules((prev) => new Set([...prev, text]))

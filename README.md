@@ -1,105 +1,184 @@
 # Your Voice
 
-A React 19 web app built with Vite, Tailwind CSS, and Supabase.
+An open-source AI script writing tool that learns your voice over time.
 
-## About
+## What It Does
 
-Your Voice is a website for content creators who want to write scripts that accurately replicate their own voice—how they would write and refine their own scripts for making content. The system uses a **recursive learning loop** to document someone's nuances until it sounds like their voice, as if they had authentically written the script themselves.
+Your Voice helps content creators write scripts that actually sound like them. It uses a **recursive learning loop** — every time you give feedback on a generated script, the system extracts a rule and adds it to your personal voice profile. Over time, the AI gets closer and closer to how you actually talk and write.
 
-This allows people to develop their own authentic, unique-sounding version of themselves while still benefiting from the speed and generation capabilities of AI. The system is designed to be easy to use for non-coders. Use cases include:
+It also lets you feed it YouTube videos from experts in your niche. It extracts their knowledge, perspectives, and communication style — so your scripts are grounded in your specific domain, not generic AI responses.
 
-- Script writing for videos, podcasts, and social content
-- Presentations and speeches
-- Any content where your authentic voice matters
+**Use cases:** video scripts, podcast outlines, social content, presentations, speeches — anything where your authentic voice matters.
 
-### Niche Expertise
+---
 
-Your Voice includes a section for the AI to gain expertise on the creator's niche—understanding their knowledge, perspectives, and domain expertise. Rather than pulling from the full spectrum of the LLM's generic responses, the system draws from the creator's **specific knowledge base**, ensuring outputs stay true to both their voice and their unique expertise.
+## How It Works (Architecture)
+
+The app has two modes that share the same frontend codebase:
+
+**Local development** — runs an Express server alongside Vite. You bring your own API keys via `.env`. No cloud services required beyond Supabase (for auth and database).
+
+**Deployed/hosted** — the frontend is served as a static site (Netlify). The API routes run as Supabase Edge Functions. Your OpenAI key lives in Supabase's encrypted secrets vault and never touches the browser.
+
+The switch between modes is a single environment variable (`VITE_API_BASE`).
+
+---
 
 ## Tech Stack
 
-- **React 19** - Latest React
-- **Vite** - Build tool and dev server
-- **Tailwind CSS** - Utility-first CSS
-- **Supabase** - Backend (auth, database, storage)
-- **ESLint 9** - Linting with flat config
-- **Netlify** - Deployment
+- **React 19** + **Vite** — frontend
+- **Tailwind CSS** — styling
+- **Supabase** — auth, database, and Edge Functions (serverless API)
+- **OpenAI API** — script generation and voice rule extraction
+- **Express** — local dev API server
+- **Netlify** — production static hosting
 
-## Getting Started
+---
+
+## Local Development Setup
+
+This is the fastest way to get running. You run everything locally with your own API keys.
 
 ### Prerequisites
 
 - Node.js 18+
-- npm or yarn
+- A [Supabase](https://supabase.com) account and project (free tier works)
+- An [OpenAI](https://platform.openai.com) API key
 
-### Installation
+### 1. Install dependencies
 
 ```bash
 npm install
 ```
 
-### Environment Variables
-
-Copy `.env.example` to `.env` and add your Supabase credentials:
+### 2. Set up environment variables
 
 ```bash
 cp .env.example .env
 ```
 
-Get your Supabase URL and anon key from your [Supabase project settings](https://supabase.com/dashboard/project/_/settings/api).
+Open `.env` and fill in your values:
 
-### Supabase CLI
-
-The project uses Supabase CLI for migrations. To link to your remote project:
-
-```bash
-npx supabase login
-npx supabase link --project-ref ibaafagxnhxlzxvmwmjx
+```
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+OPENAI_API_KEY=sk-your-openai-key
 ```
 
-Then push migrations: `npx supabase db push`
+Get your Supabase URL and anon key from your [Supabase project settings → API](https://supabase.com/dashboard/project/_/settings/api).
 
-### Auth Setup
+> **Note:** Do not add `VITE_API_BASE` to your local `.env`. Its absence is what tells the app to use the local Express server.
 
-The app uses Supabase Auth (email/password). In your Supabase project:
+### 3. Run database migrations
 
-1. Go to **Authentication → Providers** and ensure **Email** is enabled
-2. For email confirmation, add your redirect URLs under **Authentication → URL Configuration** (e.g. `http://localhost:3005` for dev, your Netlify URL for production)
-
-### Development
+Install the Supabase CLI if you haven't:
 
 ```bash
-npm start
+npm install -g supabase
 ```
 
-Or `npm run dev`. Runs at [http://localhost:3005](http://localhost:3005)
-
-### Build
+Link to your project and push the schema:
 
 ```bash
-npm run build
+supabase login
+supabase link --project-ref your-project-ref
+supabase db push
 ```
 
-### Lint
+Your project ref is the ID in your Supabase dashboard URL: `https://supabase.com/dashboard/project/YOUR-REF-HERE`
+
+### 4. Enable Email Auth in Supabase
+
+In your Supabase dashboard:
+1. Go to **Authentication → Providers** and make sure **Email** is enabled
+2. Go to **Authentication → URL Configuration** and add `http://localhost:3005` to the allowed redirect URLs
+
+### 5. Start the dev server
 
 ```bash
-npm run lint
+npm run dev
 ```
 
-### Preview Production Build
+App runs at [http://localhost:3005](http://localhost:3005). This starts both the Vite frontend and the Express API server together.
+
+---
+
+## Production Deployment (Netlify + Supabase Edge Functions)
+
+In production, the Express server is replaced by Supabase Edge Functions. Your OpenAI key is stored as an encrypted Supabase secret — it never appears in the frontend bundle or any source file.
+
+### 1. Deploy the Edge Functions
 
 ```bash
-npm run preview
+supabase login
+supabase link --project-ref your-project-ref
+supabase secrets set OPENAI_API_KEY=sk-your-openai-key
+supabase functions deploy create-content
+supabase functions deploy feedback
+supabase functions deploy expertise-extract
 ```
 
-### RLS (Row Level Security)
+### 2. Push database migrations
 
-Basic RLS is enabled on `profiles`:
-- **SELECT, INSERT, UPDATE, DELETE**: Users can only access their own profile (`auth.uid() = id`)
+```bash
+supabase db push
+```
 
-## Deployment (Netlify)
+### 3. Deploy to Netlify
 
-1. Push your code to GitHub
-2. Connect your repo in [Netlify](https://app.netlify.com)
-3. Build settings are pre-configured in `netlify.toml`
-4. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` as environment variables in Netlify
+1. Push your repo to GitHub
+2. Connect the repo in [Netlify](https://app.netlify.com) — build settings are pre-configured in `netlify.toml`
+3. Add these environment variables in **Netlify → Site → Environment Variables**:
+
+| Variable | Value |
+|---|---|
+| `VITE_SUPABASE_URL` | `https://your-project-ref.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | Your Supabase anon key |
+| `VITE_API_BASE` | `https://your-project-ref.supabase.co/functions/v1` |
+
+4. Trigger a deploy. The `VITE_API_BASE` variable is what switches the app from Express to Edge Functions.
+
+### 4. Update Supabase Auth redirect URLs
+
+In your Supabase dashboard under **Authentication → URL Configuration**, add your Netlify URL (e.g. `https://your-site.netlify.app`) to the allowed redirect URLs.
+
+---
+
+## Environment Variables Reference
+
+| Variable | Required | Where | Purpose |
+|---|---|---|---|
+| `VITE_SUPABASE_URL` | Yes | `.env` + Netlify | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Yes | `.env` + Netlify | Supabase public key (safe to expose — protected by RLS) |
+| `OPENAI_API_KEY` | Yes | `.env` (local) or Supabase secret (production) | OpenAI API key — never put this in Netlify env vars |
+| `VITE_API_BASE` | Production only | Netlify only | Points the frontend at Edge Functions. Leave unset for local dev. |
+
+---
+
+## Security Model
+
+- **`OPENAI_API_KEY`** — never reaches the browser in any mode. Locally it stays in `.env` and is read by the Express server. In production it lives in Supabase's encrypted secrets vault, accessible only inside Edge Functions.
+- **`VITE_SUPABASE_ANON_KEY`** — intentionally public. Supabase's security model is built around this: the anon key alone can't access anything your Row Level Security (RLS) policies don't explicitly allow. This is the same pattern Stripe uses with publishable keys.
+- **`SUPABASE_SERVICE_ROLE_KEY`** — never use this in this project. It bypasses RLS entirely.
+
+---
+
+## Available Scripts
+
+```bash
+npm run dev      # Start local dev server (Vite + Express)
+npm run build    # Build for production
+npm run preview  # Preview production build locally
+npm run lint     # Run ESLint
+```
+
+---
+
+## Database Schema
+
+Migrations live in `supabase/migrations/` and are applied in order via `supabase db push`. The schema includes:
+
+- `profiles` — user profile and voice preferences
+- `voice_rules` — per-user communication style rules (category: `voice`) and expertise items (category: `expertise`)
+- `scripts` — saved generated scripts
+- `script_feedback` — feedback submissions used to extract new voice rules

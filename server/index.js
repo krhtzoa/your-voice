@@ -5,6 +5,7 @@ import OpenAI from 'openai'
 import { createClient } from '@supabase/supabase-js'
 import { fetchTranscript } from '@egoist/youtube-transcript-plus'
 import { buildSystemPrompt } from './lib/profileContextBuilder.js'
+import { findSimilarRules } from './lib/ruleSimilarity.js'
 
 const RE_YOUTUBE_VIDEO_ID = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i
 
@@ -106,7 +107,7 @@ app.post('/api/create-content', async (req, res) => {
 
     const openai = new OpenAI({ apiKey })
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemContent },
         { role: 'user', content: prompt.trim() },
@@ -215,21 +216,76 @@ Extract 1–3 COMMUNICATION STYLE or TONE rules directly from this feedback. Be 
       }
     }
 
-    // Insert each rule into voice_rules
+    // Fetch current voice rules once for similarity checks
+    const { data: existingRules } = await supabaseWithAuth
+      .from('voice_rules')
+      .select('id, content, category')
+      .eq('user_id', user.id)
+
+    const currentRules = existingRules ?? []
+
+    // Insert each rule — deduplicate against existing voice rules first
     let rulesAdded = 0
+    let rulesConsolidated = 0
+
     for (const content of rules) {
-      const { error: ruleError } = await supabaseWithAuth
-        .from('voice_rules')
-        .insert({
-          user_id: user.id,
-          content,
-          rule_type: 'general',
-          source: 'feedback',
+      const similar = findSimilarRules(content, currentRules, 'voice')
+
+      if (similar.length === 0) {
+        // No overlap — safe to insert
+        const { error: ruleError } = await supabaseWithAuth
+          .from('voice_rules')
+          .insert({ user_id: user.id, content, rule_type: 'general', source: 'feedback', category: 'voice' })
+        if (!ruleError) {
+          rulesAdded++
+          currentRules.push({ id: 'pending', content, category: 'voice' })
+        }
+      } else {
+        // Potential overlap — ask GPT to merge or keep both
+        const topMatch = similar[0].rule
+        const consolidatePrompt = `Two communication style rules may overlap:
+
+Rule A (existing): "${topMatch.content}"
+Rule B (new): "${content}"
+
+Should they be MERGED into one improved rule, or are they distinct enough to KEEP_BOTH?
+Reply with exactly one of:
+MERGED: <single combined rule text>
+KEPT_BOTH`
+
+        const consolidation = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: consolidatePrompt }],
         })
-      if (!ruleError) rulesAdded++
+        const decision = consolidation.choices?.[0]?.message?.content?.trim() ?? ''
+
+        if (decision.startsWith('MERGED:')) {
+          const merged = decision.slice(7).trim()
+          if (merged) {
+            await supabaseWithAuth
+              .from('voice_rules')
+              .update({ content: merged, updated_at: new Date().toISOString() })
+              .eq('id', topMatch.id)
+              .eq('user_id', user.id)
+            rulesConsolidated++
+            // Update in-memory list so later rules in this loop see the merge
+            const idx = currentRules.findIndex((r) => r.id === topMatch.id)
+            if (idx !== -1) currentRules[idx].content = merged
+          }
+        } else {
+          // KEPT_BOTH — insert new rule anyway
+          const { error: ruleError } = await supabaseWithAuth
+            .from('voice_rules')
+            .insert({ user_id: user.id, content, rule_type: 'general', source: 'feedback', category: 'voice' })
+          if (!ruleError) {
+            rulesAdded++
+            currentRules.push({ id: 'pending', content, category: 'voice' })
+          }
+        }
+      }
     }
 
-    res.json({ rulesAdded })
+    res.json({ rulesAdded, rulesConsolidated })
   } catch (err) {
     console.error('feedback error:', err)
     if (!res.headersSent) {
@@ -311,7 +367,7 @@ Be concise. Each item should be 1–2 sentences. Prefer 3–8 items per category
 
     const openai = new OpenAI({ apiKey })
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [{ role: 'user', content: extractPrompt }],
     })
     const raw = completion.choices?.[0]?.message?.content ?? ''

@@ -3,12 +3,14 @@
  * @param {{ feedbackText: string, scriptContent: string, scriptId?: string, accessToken?: string }} params
  * @returns {Promise<{ rulesAdded: number }>}
  */
+import { API_BASE } from './apiBase.js'
+
 export async function submitFeedback({ feedbackText, scriptContent, scriptId, accessToken }) {
   const headers = { 'Content-Type': 'application/json' }
   if (accessToken) {
     headers.Authorization = `Bearer ${accessToken}`
   }
-  const res = await fetch('/api/feedback', {
+  const res = await fetch(`${API_BASE}/feedback`, {
     method: 'POST',
     headers,
     body: JSON.stringify({

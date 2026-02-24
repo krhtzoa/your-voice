@@ -76,13 +76,18 @@ export function elaborateProfile(profile) {
 }
 
 /**
- * Formats voice rules as directives, grouped by type.
+ * Formats voice/style rules as directives, grouped by type.
+ * Only processes rules with category === 'voice' (or no category, for
+ * backwards compatibility with rows created before the category column).
  */
 export function formatRules(rules) {
   if (!rules || rules.length === 0) return ''
 
+  const voiceRules = rules.filter((r) => (r.category ?? 'voice') === 'voice')
+  if (voiceRules.length === 0) return ''
+
   const byType = {}
-  for (const rule of rules) {
+  for (const rule of voiceRules) {
     const type = rule.rule_type || 'general'
     if (!byType[type]) byType[type] = []
     byType[type].push(rule.content?.trim() || '')
@@ -103,6 +108,23 @@ export function formatRules(rules) {
 }
 
 /**
+ * Formats expertise rules (knowledge facts and perspectives learned from
+ * expert sources) as a plain bulleted list for the Subject Matter Context
+ * section of the system prompt.
+ */
+export function formatExpertiseRules(rules) {
+  if (!rules || rules.length === 0) return ''
+
+  const expertiseRules = rules.filter((r) => r.category === 'expertise')
+  if (expertiseRules.length === 0) return ''
+
+  return expertiseRules
+    .map((r) => `- ${r.content?.trim()}`)
+    .filter(Boolean)
+    .join('\n')
+}
+
+/**
  * Builds the full system prompt for the AI.
  */
 export function buildSystemPrompt({ profile, rules, prompt, duration, platform }) {
@@ -112,7 +134,8 @@ export function buildSystemPrompt({ profile, rules, prompt, duration, platform }
   const platformLabel = platform || 'general content'
 
   const elaborated = elaborateProfile(profile)
-  const rulesBlock = formatRules(rules)
+  const voiceBlock = formatRules(rules)
+  const expertiseBlock = formatExpertiseRules(rules)
 
   const parts = []
 
@@ -132,7 +155,17 @@ export function buildSystemPrompt({ profile, rules, prompt, duration, platform }
   if (elaborated.platforms) parts.push(`Platforms: ${elaborated.platforms}.`)
   parts.push('')
 
-  // Section 3: Style & rules
+  // Section 3: Subject matter context (expertise rules — knowledge and perspectives)
+  // Injected separately from style rules so the model treats them as content
+  // inputs rather than behavioral directives.
+  if (expertiseBlock) {
+    parts.push('## Subject Matter Context')
+    parts.push('The creator has these areas of expertise and perspective. Use this to add depth, credibility, and accurate nuance to the script content:')
+    parts.push(expertiseBlock)
+    parts.push('')
+  }
+
+  // Section 4: Style & voice rules
   parts.push('## Style and Voice Rules')
   parts.push(`When writing the script, use the style and tone of: ${elaborated.tone}`)
   parts.push('')
@@ -140,14 +173,14 @@ export function buildSystemPrompt({ profile, rules, prompt, duration, platform }
   parts.push('- Sound human and natural. Avoid anything that reads as AI-generated (e.g. overly polished, generic, or formulaic).')
   parts.push('- NEVER use em-dashes (—). Use commas, periods, or parentheses instead. This is mandatory.')
   parts.push('- Use zero emojis unless the user explicitly asks for them.')
-  if (rulesBlock) {
+  if (voiceBlock) {
     parts.push('')
     parts.push('Make sure you follow these rules:')
-    parts.push(rulesBlock)
+    parts.push(voiceBlock)
   }
   parts.push('')
 
-  // Section 4: Closing
+  // Section 5: Closing
   parts.push('Write the script in this creator\'s voice. Follow all rules above. Do not violate any Avoid or Never rules.')
 
   return parts.join('\n')
