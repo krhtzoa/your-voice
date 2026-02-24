@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import {
-  fetchRules,
+  fetchRulesByCategory,
   createRule,
   updateRule,
   deleteRule,
@@ -49,7 +49,7 @@ export default function RulesPage() {
       setLoading(false)
       return
     }
-    const { data, error: err } = await fetchRules(user.id)
+    const { data, error: err } = await fetchRulesByCategory(user.id, 'voice')
     if (err) {
       setError(err.message)
       setRules([])
@@ -158,7 +158,10 @@ export default function RulesPage() {
   return (
     <div className="flex flex-col items-center gap-8 pt-12 px-6 pb-16">
       <div className={sectionClass}>
-        <h2 className="mb-4 text-lg font-semibold text-slate-800">Add a rule</h2>
+        <h2 className="mb-1 text-lg font-semibold text-slate-800">Add a voice rule</h2>
+        <p className="mb-4 text-min text-slate-500">
+          Communication style, tone, phrasing, and delivery rules. For subject-matter expertise, go to the Expertise page.
+        </p>
         <form onSubmit={handleAdd} className="flex flex-col gap-3">
           <div>
             <label htmlFor="add-content" className="mb-1 block text-min font-medium text-slate-700">
@@ -206,7 +209,7 @@ export default function RulesPage() {
       )}
 
       <div className="w-full max-w-[500px]">
-        <h2 className="mb-4 text-lg font-semibold text-slate-800">Your rules</h2>
+        <h2 className="mb-4 text-lg font-semibold text-slate-800">Your voice &amp; style rules</h2>
         {rules.length === 0 ? (
           <div className={sectionClass}>
             <p className="mb-4 text-base text-slate-600">
