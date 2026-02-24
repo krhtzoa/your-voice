@@ -27,7 +27,7 @@ export async function fetchRules(userId) {
   return { data: data ?? [], error }
 }
 
-export async function createRule(userId, { content, rule_type, source = 'manual' }) {
+export async function createRule(userId, { content, rule_type, source = 'manual', category = 'voice' }) {
   if (!supabase || !userId) return { data: null, error: new Error('Missing supabase or userId') }
   const { data, error } = await supabase
     .from('voice_rules')
@@ -36,6 +36,7 @@ export async function createRule(userId, { content, rule_type, source = 'manual'
       content: content.trim(),
       rule_type,
       source: source === 'feedback' ? 'feedback' : 'manual',
+      category: category === 'expertise' ? 'expertise' : 'voice',
     })
     .select()
     .single()

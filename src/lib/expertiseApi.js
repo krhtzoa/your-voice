@@ -3,12 +3,14 @@
  * @param {{ youtubeUrl: string, accessToken?: string }} params
  * @returns {Promise<{ transcript: string, transcriptLength: number, knowledge: string[], perspectives: string[], communicationStyles: string[] }>}
  */
+import { API_BASE } from './apiBase.js'
+
 export async function extractExpertise({ youtubeUrl, accessToken }) {
   const headers = { 'Content-Type': 'application/json' }
   if (accessToken) {
     headers.Authorization = `Bearer ${accessToken}`
   }
-  const res = await fetch('/api/expertise/extract', {
+  const res = await fetch(`${API_BASE}/expertise/extract`, {
     method: 'POST',
     headers,
     body: JSON.stringify({ youtubeUrl: youtubeUrl?.trim() }),
