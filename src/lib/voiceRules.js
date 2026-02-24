@@ -27,6 +27,17 @@ export async function fetchRules(userId) {
   return { data: data ?? [], error }
 }
 
+export async function fetchRulesByCategory(userId, category) {
+  if (!supabase || !userId) return { data: [], error: new Error('Missing supabase or userId') }
+  const { data, error } = await supabase
+    .from('voice_rules')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('category', category)
+    .order('created_at', { ascending: true })
+  return { data: data ?? [], error }
+}
+
 export async function createRule(userId, { content, rule_type, source = 'manual', category = 'voice' }) {
   if (!supabase || !userId) return { data: null, error: new Error('Missing supabase or userId') }
   const { data, error } = await supabase
