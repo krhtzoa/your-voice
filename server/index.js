@@ -1,8 +1,9 @@
 import 'dotenv/config'
 import express from 'express'
+import ViteExpress from 'vite-express'
 import OpenAI from 'openai'
 import { createClient } from '@supabase/supabase-js'
-import { YoutubeTranscript } from 'youtube-transcript'
+import { fetchTranscript } from '@egoist/youtube-transcript-plus'
 import { buildSystemPrompt } from './lib/profileContextBuilder.js'
 
 const RE_YOUTUBE_VIDEO_ID = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i
@@ -16,7 +17,7 @@ function extractVideoId(urlOrId) {
 const app = express()
 app.use(express.json())
 
-const PORT = process.env.API_PORT || 3001
+const PORT = process.env.PORT || process.env.API_PORT || 3005
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
@@ -269,10 +270,17 @@ app.post('/api/expertise/extract', async (req, res) => {
       return sendError(400, 'Valid YouTube URL or video ID is required')
     }
 
-    // Fetch transcript
-    let transcriptParts
+    // Fetch transcript (uses @egoist/youtube-transcript-plus for better compatibility)
+    let transcriptText
     try {
-      transcriptParts = await YoutubeTranscript.fetchTranscript(videoId)
+      const result = await fetchTranscript(videoId)
+      const segments = result?.segments ?? []
+      transcriptText = segments
+        .map((s) => (s?.text || '').trim())
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim()
     } catch (err) {
       const msg = err?.message || String(err)
       if (/disabled|unavailable|not available|too many/i.test(msg)) {
@@ -280,13 +288,6 @@ app.post('/api/expertise/extract', async (req, res) => {
       }
       throw err
     }
-
-    const transcriptText = transcriptParts
-      .map((p) => (p.text || '').trim())
-      .filter(Boolean)
-      .join(' ')
-      .replace(/\s+/g, ' ')
-      .trim()
 
     if (!transcriptText || transcriptText.length < 100) {
       return sendError(400, 'Transcript is empty or too short to analyze')
@@ -344,8 +345,8 @@ Be concise. Each item should be 1–2 sentences. Prefer 3–8 items per category
   }
 })
 
-app.listen(PORT, () => {
-  console.log(`API server running at http://localhost:${PORT}`)
+ViteExpress.listen(app, PORT, () => {
+  console.log(`App running at http://localhost:${PORT}`)
   console.log('(AI context will be logged here when you CREATE content)')
   if (!process.env.OPENAI_API_KEY) {
     console.warn('WARNING: OPENAI_API_KEY not set – create-content will fail')

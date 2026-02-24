@@ -4,14 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "start": "concurrently \"vite\" \"npm run dev:api\"",
-    "dev": "concurrently \"vite\" \"npm run dev:api\"",
-    "dev:api": "node server/index.js",
+    "start": "node server/index.js",
+    "dev": "node server/index.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@egoist/youtube-transcript-plus": "^1.1.2",
     "@supabase/supabase-js": "^2.47.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
@@ -20,7 +20,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.13.0",
-    "youtube-transcript": "^1.2.1"
+    "vite-express": "^0.22.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
