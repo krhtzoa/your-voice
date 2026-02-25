@@ -38,7 +38,7 @@ export async function fetchRulesByCategory(userId, category) {
   return { data: data ?? [], error }
 }
 
-export async function createRule(userId, { content, rule_type, source = 'manual', category = 'voice' }) {
+export async function createRule(userId, { content, rule_type, source = 'manual', category = 'voice', source_label = null }) {
   if (!supabase || !userId) return { data: null, error: new Error('Missing supabase or userId') }
   const { data, error } = await supabase
     .from('voice_rules')
@@ -48,21 +48,26 @@ export async function createRule(userId, { content, rule_type, source = 'manual'
       rule_type,
       source: source === 'feedback' ? 'feedback' : 'manual',
       category: category === 'expertise' ? 'expertise' : 'voice',
+      source_label: source_label?.trim() || null,
     })
     .select()
     .single()
   return { data, error }
 }
 
-export async function updateRule(userId, ruleId, { content, rule_type }) {
+export async function updateRule(userId, ruleId, { content, rule_type, source_label }) {
   if (!supabase || !userId || !ruleId) return { data: null, error: new Error('Missing params') }
+  const updatePayload = {
+    content: content.trim(),
+    rule_type,
+    updated_at: new Date().toISOString(),
+  }
+  if (source_label !== undefined) {
+    updatePayload.source_label = source_label?.trim() || null
+  }
   const { data, error } = await supabase
     .from('voice_rules')
-    .update({
-      content: content.trim(),
-      rule_type,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq('id', ruleId)
     .eq('user_id', userId)
     .select()

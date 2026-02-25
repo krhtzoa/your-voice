@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Lightbulb, BookOpen, MessageCircle, Plus, Check, Pencil, Trash2, Brain } from 'lucide-react'
+import { Lightbulb, BookOpen, MessageCircle, Plus, Check, Pencil, Trash2, Brain, Youtube } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { extractExpertise } from '../lib/expertiseApi.js'
 import {
@@ -7,11 +7,42 @@ import {
   createRule,
   updateRule,
   deleteRule,
-  RULE_TYPES,
 } from '../lib/voiceRules.js'
 
 const sectionClass =
   'w-full max-w-[640px] rounded-xl border border-slate-200 bg-white/95 p-6 shadow-sm'
+
+const RE_YT = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i
+
+function parseYoutubeId(url) {
+  const m = url?.match(RE_YT)
+  return m ? m[1] : null
+}
+
+/** Render a source_label as a readable tag */
+function SourceTag({ label }) {
+  if (!label) return null
+  const ytId = parseYoutubeId(label)
+  if (ytId) {
+    return (
+      <a
+        href={`https://www.youtube.com/watch?v=${ytId}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-min font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+        title={label}
+      >
+        <Youtube size={11} />
+        {ytId}
+      </a>
+    )
+  }
+  return (
+    <span className="inline-flex items-center rounded px-2 py-0.5 text-min font-medium bg-slate-100 text-slate-600" title={label}>
+      {label.length > 40 ? label.slice(0, 40) + '…' : label}
+    </span>
+  )
+}
 
 // ── Extracted insight list (from YouTube extraction) ──────────────────────────
 function ItemList({ items, title, icon: Icon, onAddAsRule, addedIds }) {
@@ -35,7 +66,7 @@ function ItemList({ items, title, icon: Icon, onAddAsRule, addedIds }) {
                 onClick={() => onAddAsRule(item)}
                 disabled={addedIds?.has(item)}
                 className="shrink-0 rounded px-2 py-1 text-[0.75rem] font-medium text-slate-600 transition-colors hover:bg-slate-200 hover:text-slate-800 disabled:bg-emerald-100 disabled:text-emerald-700"
-                title={addedIds?.has(item) ? 'Added to expertise' : 'Save as expertise'}
+                title={addedIds?.has(item) ? 'Saved to expertise' : 'Save to expertise'}
               >
                 {addedIds?.has(item) ? (
                   <span className="flex items-center gap-1">
@@ -62,12 +93,12 @@ function SavedExpertise({ userId, refreshTrigger }) {
   const [error, setError] = useState('')
 
   const [addContent, setAddContent] = useState('')
-  const [addType, setAddType] = useState('general')
+  const [addSource, setAddSource] = useState('')
   const [adding, setAdding] = useState(false)
 
   const [editingId, setEditingId] = useState(null)
   const [editContent, setEditContent] = useState('')
-  const [editType, setEditType] = useState('general')
+  const [editSource, setEditSource] = useState('')
   const [savingId, setSavingId] = useState(null)
 
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
@@ -98,27 +129,28 @@ function SavedExpertise({ userId, refreshTrigger }) {
     setError('')
     const { error: err } = await createRule(userId, {
       content,
-      rule_type: addType,
+      rule_type: 'general',
       source: 'manual',
       category: 'expertise',
+      source_label: addSource.trim() || null,
     })
     setAdding(false)
     if (err) { setError(err.message); return }
     setAddContent('')
-    setAddType('general')
+    setAddSource('')
     load()
   }
 
   function startEdit(rule) {
     setEditingId(rule.id)
     setEditContent(rule.content)
-    setEditType(rule.rule_type)
+    setEditSource(rule.source_label ?? '')
   }
 
   function cancelEdit() {
     setEditingId(null)
     setEditContent('')
-    setEditType('general')
+    setEditSource('')
   }
 
   async function handleSaveEdit(e) {
@@ -128,7 +160,8 @@ function SavedExpertise({ userId, refreshTrigger }) {
     setError('')
     const { error: err } = await updateRule(userId, editingId, {
       content: editContent.trim(),
-      rule_type: editType,
+      rule_type: 'general',
+      source_label: editSource.trim() || null,
     })
     setSavingId(null)
     if (err) { setError(err.message); return }
@@ -153,12 +186,12 @@ function SavedExpertise({ userId, refreshTrigger }) {
         Your expertise knowledge
       </h2>
       <p className="mb-5 text-min text-slate-500">
-        Facts, frameworks, and perspectives you hold that the AI uses when generating content.
-        These are separate from communication style rules.
+        Facts, frameworks, and perspectives the AI uses when generating your content.
+        Separate from communication style rules.
       </p>
 
-      {/* Add new */}
-      <form onSubmit={handleAdd} className="mb-6 space-y-3">
+      {/* Add manually */}
+      <form onSubmit={handleAdd} className="mb-6 space-y-2.5">
         <div>
           <label htmlFor="expertise-add" className="mb-1 block text-min font-medium text-slate-700">
             Add expertise manually
@@ -172,24 +205,22 @@ function SavedExpertise({ userId, refreshTrigger }) {
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-800 placeholder-slate-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
           />
         </div>
-        <div className="flex items-center gap-3">
-          <select
-            value={addType}
-            onChange={(e) => setAddType(e.target.value)}
-            className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-min text-slate-800 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-          >
-            {RULE_TYPES.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            disabled={adding || !addContent.trim()}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-min font-medium text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {adding ? 'Saving…' : 'Save'}
-          </button>
+        <div>
+          <input
+            type="text"
+            value={addSource}
+            onChange={(e) => setAddSource(e.target.value)}
+            placeholder="Source (optional) — e.g., Joseph Allen, Building Science Corp, youtube.com/…"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-min text-slate-700 placeholder-slate-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+          />
         </div>
+        <button
+          type="submit"
+          disabled={adding || !addContent.trim()}
+          className="rounded-lg bg-slate-900 px-4 py-2 text-min font-medium text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {adding ? 'Saving…' : 'Save'}
+        </button>
       </form>
 
       {error && <p className="mb-3 text-min text-red-600">{error}</p>}
@@ -217,15 +248,13 @@ function SavedExpertise({ userId, refreshTrigger }) {
                     required
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-800 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                   />
-                  <select
-                    value={editType}
-                    onChange={(e) => setEditType(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-min text-slate-800 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                  >
-                    {RULE_TYPES.map(({ value, label }) => (
-                      <option key={value} value={value}>{label}</option>
-                    ))}
-                  </select>
+                  <input
+                    type="text"
+                    value={editSource}
+                    onChange={(e) => setEditSource(e.target.value)}
+                    placeholder="Source (optional)"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-min text-slate-700 placeholder-slate-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  />
                   <div className="flex gap-2">
                     <button
                       type="submit"
@@ -266,19 +295,11 @@ function SavedExpertise({ userId, refreshTrigger }) {
                       </button>
                     </div>
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <span className="inline-flex rounded px-2 py-0.5 text-min font-medium bg-violet-100 text-violet-700">
-                      expertise
-                    </span>
-                    {rule.rule_type !== 'general' && (
-                      <span className="inline-flex rounded px-2 py-0.5 text-min font-medium bg-slate-100 text-slate-600">
-                        {RULE_TYPES.find((t) => t.value === rule.rule_type)?.label ?? rule.rule_type}
-                      </span>
-                    )}
-                    {rule.source === 'feedback' && (
-                      <span className="text-min text-slate-400">Extracted from video</span>
-                    )}
-                  </div>
+                  {rule.source_label && (
+                    <div className="mt-2">
+                      <SourceTag label={rule.source_label} />
+                    </div>
+                  )}
                 </>
               )}
 
@@ -320,7 +341,6 @@ export default function ExpertisePage() {
   const [error, setError] = useState('')
   const [result, setResult] = useState(null)
   const [addedAsRules, setAddedAsRules] = useState(new Set())
-  // Incrementing this re-triggers the SavedExpertise load after extraction saves
   const [savedRefresh, setSavedRefresh] = useState(0)
 
   async function handleExtract(e) {
@@ -347,6 +367,7 @@ export default function ExpertisePage() {
       rule_type: 'general',
       source: 'feedback',
       category: 'expertise',
+      source_label: youtubeUrl.trim() || null,
     })
     if (!err) {
       setAddedAsRules((prev) => new Set([...prev, text]))
@@ -411,7 +432,7 @@ export default function ExpertisePage() {
           <div className={sectionClass}>
             <h3 className="mb-1 text-min font-semibold text-slate-800">Extracted insights</h3>
             <p className="mb-4 text-min text-slate-500">
-              Hit &ldquo;Save&rdquo; to add any item to your expertise knowledge below.
+              Hit &ldquo;Save&rdquo; to add any item to your expertise knowledge. The video URL will be tagged automatically.
             </p>
             <div className="space-y-6">
               <ItemList

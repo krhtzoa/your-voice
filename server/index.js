@@ -5,7 +5,7 @@ import OpenAI from 'openai'
 import { createClient } from '@supabase/supabase-js'
 import { fetchTranscript } from '@egoist/youtube-transcript-plus'
 import { buildSystemPrompt } from './lib/profileContextBuilder.js'
-import { findSimilarRules } from './lib/ruleSimilarity.js'
+import { findSimilarRules, debugExpertiseFilter } from './lib/ruleSimilarity.js'
 
 const RE_YOUTUBE_VIDEO_ID = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i
 
@@ -98,7 +98,29 @@ app.post('/api/create-content', async (req, res) => {
       platform,
     })
 
-    // Debug: log full AI context (look in the terminal where npm start is running)
+    // Debug: log full AI context + expertise filter report
+    const expertiseRules = rules.filter((r) => r.category === 'expertise')
+    const expertiseDebug = debugExpertiseFilter(prompt.trim(), expertiseRules)
+
+    console.log('\n' + '='.repeat(60))
+    console.log('EXPERTISE FILTER REPORT')
+    console.log('='.repeat(60))
+    console.log(`Topic: "${prompt.trim().slice(0, 100)}"`)
+    console.log(`Rules available: ${expertiseDebug.totalAvailable}  |  Cap (topN): ${expertiseDebug.topN}  |  Filtering active: ${!expertiseDebug.belowCap}`)
+    if (expertiseDebug.included.length > 0) {
+      console.log('\n  ✓ INCLUDED:')
+      expertiseDebug.included.forEach((r) => {
+        console.log(`    [${r.score.toFixed(3)}] ${r.preview}${r.source_label ? ` (${r.source_label})` : ''}`)
+      })
+    }
+    if (expertiseDebug.excluded.length > 0) {
+      console.log('\n  ✗ EXCLUDED:')
+      expertiseDebug.excluded.forEach((r) => {
+        console.log(`    [${r.score.toFixed(3)}] ${r.preview}${r.source_label ? ` (${r.source_label})` : ''}`)
+      })
+    } else {
+      console.log('\n  (no rules excluded — library is within the cap)')
+    }
     console.log('\n' + '='.repeat(60))
     console.log('AI SYSTEM PROMPT (injected context)')
     console.log('='.repeat(60))
@@ -116,7 +138,7 @@ app.post('/api/create-content', async (req, res) => {
     let text = completion.choices?.[0]?.message?.content ?? ''
     // Post-process: strip em-dashes (AI sometimes ignores the rule)
     text = text.replace(/—/g, ', ')
-    res.json({ content: text })
+    res.json({ content: text, _expertiseDebug: expertiseDebug })
   } catch (err) {
     console.error('create-content error:', err)
     if (!res.headersSent) {

@@ -1,3 +1,5 @@
+import { filterRelevantExpertise } from './ruleSimilarity.js'
+
 /**
  * Elaboration mappings: convert stored DB values into verbose AI context.
  * Options from CardToneStyle, CardContentGoal, CardAudienceKnowledge.
@@ -111,12 +113,12 @@ export function formatRules(rules) {
  * Formats expertise rules (knowledge facts and perspectives learned from
  * expert sources) as a plain bulleted list for the Subject Matter Context
  * section of the system prompt.
+ *
+ * Accepts a pre-filtered array of expertise rules (already scoped to the
+ * relevant subset by filterRelevantExpertise before this is called).
  */
-export function formatExpertiseRules(rules) {
-  if (!rules || rules.length === 0) return ''
-
-  const expertiseRules = rules.filter((r) => r.category === 'expertise')
-  if (expertiseRules.length === 0) return ''
+export function formatExpertiseRules(expertiseRules) {
+  if (!expertiseRules || expertiseRules.length === 0) return ''
 
   return expertiseRules
     .map((r) => `- ${r.content?.trim()}`)
@@ -135,7 +137,14 @@ export function buildSystemPrompt({ profile, rules, prompt, duration, platform }
 
   const elaborated = elaborateProfile(profile)
   const voiceBlock = formatRules(rules)
-  const expertiseBlock = formatExpertiseRules(rules)
+
+  // Filter expertise to the most topically relevant entries before injecting.
+  // When the library is small (≤ topN cap), all rules pass through unchanged.
+  // As the library grows, only the highest-scoring rules reach the prompt —
+  // zero extra API calls, pure keyword-overlap math.
+  const allExpertise = rules.filter((r) => r.category === 'expertise')
+  const relevantExpertise = filterRelevantExpertise(prompt ?? '', allExpertise)
+  const expertiseBlock = formatExpertiseRules(relevantExpertise)
 
   const parts = []
 
