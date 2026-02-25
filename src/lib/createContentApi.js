@@ -32,5 +32,24 @@ export async function createContent({ prompt, duration, platform, accessToken })
     const msg = data.error || (res.status >= 500 ? 'API server error. Run `npm run dev` and check terminal for details.' : `Request failed (${res.status})`)
     throw new Error(msg)
   }
+
+  if (data._expertiseDebug) {
+    const d = data._expertiseDebug
+    const active = !d.belowCap
+    console.groupCollapsed(
+      `%c[your-voice] Expertise filter — ${d.included.length} of ${d.totalAvailable} rules injected${active ? ` (cap: ${d.topN})` : ' (all included, below cap)'}`,
+      'color: #7c3aed; font-weight: bold;'
+    )
+    if (d.included.length) {
+      console.log('%c✓ Included:', 'color: #059669; font-weight: bold;')
+      d.included.forEach((r) => console.log(`  [${r.score.toFixed(3)}] ${r.preview}${r.source_label ? ` — ${r.source_label}` : ''}`))
+    }
+    if (d.excluded.length) {
+      console.log('%c✗ Excluded:', 'color: #dc2626; font-weight: bold;')
+      d.excluded.forEach((r) => console.log(`  [${r.score.toFixed(3)}] ${r.preview}${r.source_label ? ` — ${r.source_label}` : ''}`))
+    }
+    console.groupEnd()
+  }
+
   return data
 }
